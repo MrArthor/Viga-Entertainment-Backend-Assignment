@@ -1,75 +1,66 @@
-const { Client } = require('pg');
 
-// Load environment variables from .env file
-require('dotenv').config();
-
-const DB_NAME = process.env.DB_NAME || 'your_database_name';
-const DB_USER = process.env.DB_USER || 'your_database_user';
-const DB_HOST = process.env.DB_HOST || 'localhost';
-const DB_PASSWORD = process.env.DB_PASSWORD || 'your_database_password';
-
-const client = new Client({
-    host: DB_HOST,
-    user: DB_USER,
-    password: DB_PASSWORD,
-    port: 5432,
+// models/Organization.js
+const { Sequelize, DataTypes } = require('sequelize');
+const sequelize = new Sequelize('database', 'username', 'password', {
+   host: 'localhost',
+   dialect: 'postgres',
 });
 
-client.connect();
-client.query(`SELECT datname FROM pg_catalog.pg_database WHERE datname = '${DB_NAME}'`, (err, res) => {
-    if (err) {
-        console.error(err);
-        return;
-    }
-
-    if (res.rowCount === 0) {
-        console.log(`${DB_NAME} database not found, creating it.`);
-        client.query(`CREATE DATABASE "${DB_NAME}";`, (err, res) => {
-            if (err) {
-                console.error(err);
-                return;
-            }
-            console.log(`Created database ${DB_NAME}`);
-            client.end();
-        });
-    } else {
-        console.log(`${DB_NAME} database exists.`);
-        client.end();
-    }
+const Organization = sequelize.define('Organization', {
+   id: {
+     type: DataTypes.INTEGER,
+     primaryKey: true,
+     autoIncrement: true,
+   },
+   name: {
+     type: DataTypes.STRING,
+     allowNull: false,
+   },
 });
-function createTables() {
-    const createUsersTableQuery = `
-        CREATE TABLE IF NOT EXISTS users (
-            id SERIAL PRIMARY KEY,
-            name VARCHAR(100) NOT NULL,
-            email VARCHAR(100) UNIQUE NOT NULL
-        );
-    `;
 
-    const createItemsTableQuery = `
-        CREATE TABLE IF NOT EXISTS items (
-            id SERIAL PRIMARY KEY,
-            name VARCHAR(100) NOT NULL,
-            description TEXT
-        );
-    `;
+// models/Item.js
+const Item = sequelize.define('Item', {
+   id: {
+     type: DataTypes.INTEGER,
+     primaryKey: true,
+     autoIncrement: true,
+   },
+   type: {
+     type: DataTypes.STRING,
+     allowNull: false,
+   },
+   description: {
+     type: DataTypes.STRING,
+     allowNull: false,
+   },
+});
 
-    client.query(createUsersTableQuery, (err, res) => {
-        if (err) {
-            console.error(err);
-            return;
-        }
-        console.log('Users table created successfully.');
-    });
+// models/Pricing.js
+const Pricing = sequelize.define('Pricing', {
+   organizationId: {
+     type: DataTypes.INTEGER,
+     allowNull: false,
+   },
+   itemId: {
+     type: DataTypes.INTEGER,
+     allowNull: false,
+   },
+   zone: {
+     type: DataTypes.STRING,
+     allowNull: false,
+   },
+   baseDistanceInKm: {
+     type: DataTypes.INTEGER,
+     allowNull: false,
+   },
+   kmPrice: {
+     type: DataTypes.FLOAT,
+     allowNull: false,
+   },
+   fixPrice: {
+     type: DataTypes.FLOAT,
+     allowNull: false,
+   },
+});
 
-    client.query(createItemsTableQuery, (err, res) => {
-        if (err) {
-            console.error(err);
-            return;
-        }
-        console.log('Items table created successfully.');
-    });
-}
-
-// Call the function to create tables
-createTables();
+sequelize.sync({ force: true }).then(() => console.log('Database & tables created!'));
